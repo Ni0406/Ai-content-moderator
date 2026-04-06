@@ -1,0 +1,20 @@
+# Фреймворки машинного обучения
+torch>=2.0.0
+torchvision>=0.15.0
+tensorflow>=2.13.0
+transformers>=4.30.0
+
+# Работа с изображениями, видео и массивами
+Pillow>=9.0.0
+numpy<2.0.0
+opencv-python>=4.8.0
+
+# Работа со звуком (для Hugging Face Whisper)
+soundfile>=0.12.1
+librosa>=0.10.0
+
+# Для работы локальной LLM и вспомогательных утилит YOLOv5
+ollama>=0.1.0
+accelerate>=0.21.0
+requests>=2.28.0
+pandas>=2.0.0
