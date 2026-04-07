@@ -25,3 +25,9 @@ uvicorn>=0.23.0
 pydantic>=2.0.0
 pytest>=7.4.0
 httpx>=0.24.0
+
+
+# LangChain для AI-агента (Часть 5)
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-experimental>=0.0.49
