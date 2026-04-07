@@ -1,5 +1,5 @@
 import os
-# from langfuse.callback import CallbackHandler
+from langfuse.langchain import CallbackHandler
 from langchain_ollama import ChatOllama
 from langchain.agents import create_agent
 from langchain_core.tools import Tool
@@ -13,7 +13,12 @@ class ContentModerationAgent:
     """
     def __init__(self, model_name="qwen2.5:1.5b"):
         print(f"[INFO] Инициализация AI-агента (Мозг: {model_name})...")
+        os.environ["LANGFUSE_SECRET_KEY"] = "sk-lf-5fef7f1f-2384-435e-9061-366ead0c3df2"
+        os.environ["LANGFUSE_PUBLIC_KEY"] = "pk-lf-93097d4c-ecb4-4843-8262-28edb5a0d152"
+        os.environ["LANGFUSE_HOST"] = "https://cloud.langfuse.com"
         
+        self.langfuse_handler = CallbackHandler()
+
         self.llm = ChatOllama(model=model_name, temperature=0.1)
         self.text_analyzer = TextAnalyzer()
         self.summarizer = LLMAssistant(model_name=model_name)
@@ -52,24 +57,27 @@ class ContentModerationAgent:
         try:
             print(f"\n[USER]: {user_query}")
 
-            response = self.agent.invoke({
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "Ты AI-агент модерации. "
-                            "Отвечай только на русском языке. "
-                            "Не показывай пользователю служебные сообщения, tool calls, "
-                            "промежуточные шаги и внутреннюю трассировку. "
-                            "Дай только итоговый ответ."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": user_query
-                    }
-                ]
-            })
+            response = self.agent.invoke(
+                {
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "Ты AI-агент модерации. "
+                                "Отвечай только на русском языке. "
+                                "Не показывай пользователю служебные сообщения, tool calls, "
+                                "промежуточные шаги и внутреннюю трассировку. "
+                                "Дай только итоговый ответ."
+                            )
+                        },
+                        {
+                            "role": "user",
+                            "content": user_query
+                        }
+                    ]
+                },
+                config={"callbacks": [self.langfuse_handler]}  
+            )
 
             messages = response["messages"]
 

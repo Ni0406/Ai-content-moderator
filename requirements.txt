@@ -8,6 +8,7 @@ transformers>=4.30.0
 Pillow>=9.0.0
 numpy<2.0.0
 opencv-python>=4.8.0
+scikit-learn==1.17.0
 
 # Работа со звуком (для Hugging Face Whisper)
 soundfile>=0.12.1
