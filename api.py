@@ -9,10 +9,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Инициализация моделей
 text_analyzer = TextAnalyzer()
 llm_assistant = LLMAssistant()
 
+#Проверка что text: str
 class TextRequest(BaseModel):
     text: str
 

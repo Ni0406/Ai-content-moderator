@@ -1,6 +1,8 @@
 import os
-from langchain_community.llms import Ollama
-from langchain.agents import initialize_agent, AgentType, Tool
+# from langfuse.callback import CallbackHandler
+from langchain_ollama import ChatOllama
+from langchain.agents import create_agent
+from langchain_core.tools import Tool
 from text_analyzer_1 import TextAnalyzer
 from llm_assistant import LLMAssistant
 
@@ -12,14 +14,10 @@ class ContentModerationAgent:
     def __init__(self, model_name="qwen2.5:1.5b"):
         print(f"[INFO] Инициализация AI-агента (Мозг: {model_name})...")
         
-        # Подключаем локальную LLM через интеграцию LangChain с Ollama
-        self.llm = Ollama(model=model_name, temperature=0.1)
-        
-        # Загружаем наши готовые инструменты из Части 1 и 3
+        self.llm = ChatOllama(model=model_name, temperature=0.1)
         self.text_analyzer = TextAnalyzer()
         self.summarizer = LLMAssistant(model_name=model_name)
         
-        # Регистрируем инструменты (Tools) для агента, чтобы он знал, что они умеют
         self.tools = [
             Tool(
                 name="Sentiment_Analyzer",
@@ -33,14 +31,9 @@ class ContentModerationAgent:
             )
         ]
         
-        # Инициализируем агента типа ZERO_SHOT_REACT_DESCRIPTION
-        # (Агент читает описание инструментов и решает, какой применить)
-        self.agent = initialize_agent(
-            self.tools,
-            self.llm,
-            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True, # Включаем логирование, чтобы видеть мысли агента
-            handle_parsing_errors=True # Защита от галлюцинаций парсинга
+        self.agent = create_agent(
+            model=self.llm,
+            tools=self.tools
         )
         print("[INFO] Агент готов к работе!")
 
@@ -58,9 +51,38 @@ class ContentModerationAgent:
         """Запуск агента с промптом пользователя"""
         try:
             print(f"\n[USER]: {user_query}")
-            response = self.agent.run(user_query)
-            print(f"[AGENT]: {response}")
-            return response
+
+            response = self.agent.invoke({
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Ты AI-агент модерации. "
+                            "Отвечай только на русском языке. "
+                            "Не показывай пользователю служебные сообщения, tool calls, "
+                            "промежуточные шаги и внутреннюю трассировку. "
+                            "Дай только итоговый ответ."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": user_query
+                    }
+                ]
+            })
+
+            messages = response["messages"]
+
+            final_answer = "None"
+            for msg in reversed(messages):
+                if msg.__class__.__name__ == "AIMessage" and msg.content:
+                    # msg.content: защищает нас от пустых системных сообщений:
+                    final_answer = msg.content
+                    break
+
+            print(f"[AGENT]: {final_answer}")
+            return final_answer
+
         except Exception as e:
             print(f"[ERROR] Ошибка агента: {e}")
             return str(e)
@@ -69,10 +91,8 @@ class ContentModerationAgent:
 if __name__ == "__main__":
     agent = ContentModerationAgent()
     
-    # Тест 1: Просим определить тональность (Агент должен выбрать Sentiment_Analyzer)
     agent.run("Определи тональность этого отзыва: 'Ужасный сервис, курьер опоздал на два часа и нагрубил мне!'")
-    
     print("-" * 50)
-    
-    # Тест 2: Просим сделать выжимку (Агент должен выбрать Text_Summarizer)
-    agent.run("Сделай краткую выжимку текста: 'Вчера я ходил в кино на новый фильм Марвел. Фильм шел три часа, спецэффекты были крутые, но сюжет немного затянут. В целом, мне понравилось, особенно игра главного актера. Советую сходить с друзьями на выходных.'")
+    agent.run("Сделай краткую выжимку текста: 'Вчера я ходил в кино на новый фильм Марвел. " \
+            "Фильм шел три часа, спецэффекты были крутые, но сюжет немного затянут. " \
+            "В целом, мне понравилось, особенно игра главного актера. Советую сходить с друзьями на выходных.'")
