@@ -1,40 +1,36 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from text_analyzer_1 import TextAnalyzer
-from llm_assistant import LLMAssistant # Убедитесь, что переименовали файл!
+from fastapi.testclient import TestClient
+from api import app
 
-app = FastAPI(
-    title="AI Content Moderator API",
-    description="API для анализа контента и суммаризации текста",
-    version="1.0.0"
-)
+client = TestClient(app)
 
-# Инициализация моделей
-text_analyzer = TextAnalyzer()
-llm_assistant = LLMAssistant()
+def test_read_root():
+    """Проверяем доступность главной страницы"""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"message": "API работает! Отправьте POST запрос на /analyze или /summarize"}
 
-class TextRequest(BaseModel):
-    text: str
-
-@app.post("/analyze")
-async def analyze_sentiment(request: TextRequest):
-    """Принимает текст и возвращает его тональность"""
-    if not request.text.strip():
-        raise HTTPException(status_code=400, detail="Текст не может быть пустым")
-    return text_analyzer.analyze(request.text)
-
-@app.post("/summarize")
-async def summarize_text(request: TextRequest):
-    """Принимает текст и возвращает краткую выжимку от LLM"""
-    if not request.text.strip():
-        raise HTTPException(status_code=400, detail="Текст не может быть пустым")
+def test_analyze_positive_text():
+    """Проверяем успешную обработку текста анализатором тональности"""
+    response = client.post("/analyze", json={"text": "Я обожаю этот продукт, всё просто супер!"})
     
-    result = llm_assistant.summarize_text(request.text)
-    if "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-        
-    return result
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert "sentiment" in data
+    assert "confidence" in data
+    assert isinstance(data["confidence"], float)
 
-@app.get("/")
-async def root():
-    return {"message": "API работает! Отправьте POST запрос на /analyze или /summarize"}
+def test_analyze_empty_text():
+    """Проверяем обработку пустого текста"""
+    response = client.post("/analyze", json={"text": "   "})
+    
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Текст не может быть пустым"}
+
+
+def test_summarize_empty_text():
+    """Проверяем обработку пустого текста для суммаризации"""
+    response = client.post("/summarize", json={"text": ""})
+    
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Текст не может быть пустым"}
