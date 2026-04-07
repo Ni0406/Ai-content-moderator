@@ -7,9 +7,6 @@ class AudioAnalyzer:
     """
     def __init__(self, model_name: str = "openai/whisper-tiny"):
         print(f"[INFO] Загрузка модели аудио {model_name}...")
-        # pipeline 'automatic-speech-recognition' сам обрабатывает аудиофайлы, 
-        # нарезает их на куски (если длинные) и переводит в текст.
-        # Модель tiny весит около 150 МБ и работает очень быстро на CPU.
         self.asr_pipeline = pipeline(
             "automatic-speech-recognition", 
             model=model_name,
@@ -25,7 +22,6 @@ class AudioAnalyzer:
             return {"error": f"Файл не найден: {audio_path}"}
 
         try:
-            # Делаем предсказание. Whisper сам поймет, что язык русский (автоопределение)
             result = self.asr_pipeline(audio_path, generate_kwargs={"task": "transcribe"})
             
             return {
@@ -36,11 +32,11 @@ class AudioAnalyzer:
         except Exception as e:
             return {"error": str(e)}
 
-# Блок тестирования
+
 if __name__ == "__main__":
     analyzer = AudioAnalyzer()
     
-    # Путь к тестовому аудиофайлу
+
     test_audio_path = os.path.join("data", "input_audio.mp3")
     
     print(f"\n--- Результат транскрибации аудио: {test_audio_path} ---")

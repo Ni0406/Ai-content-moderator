@@ -1,5 +1,3 @@
-# 2_image_analyzer.py
-
 import os
 import numpy as np
 import tensorflow as tf
@@ -31,7 +29,7 @@ class ImageAnalyzer:
             
             img_array_expanded = np.expand_dims(img_array, axis=0)
             
-            #от -1 до 1
+            #от -1 до +1
             preprocessed_img = preprocess_input(img_array_expanded)
             
 
