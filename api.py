@@ -1,17 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from text_analyzer_1 import TextAnalyzer
+from llm_assistant import LLMAssistant 
 
-# Инициализация приложения и модели
 app = FastAPI(
     title="AI Content Moderator API",
-    description="API для анализа тональности текста",
+    description="API для анализа контента и суммаризации текста",
     version="1.0.0"
 )
 
-analyzer = TextAnalyzer()
+# Инициализация моделей
+text_analyzer = TextAnalyzer()
+llm_assistant = LLMAssistant()
 
-# Схема входящих данных
 class TextRequest(BaseModel):
     text: str
 
@@ -20,11 +21,20 @@ async def analyze_sentiment(request: TextRequest):
     """Принимает текст и возвращает его тональность"""
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Текст не может быть пустым")
+    return text_analyzer.analyze(request.text)
+
+@app.post("/summarize")
+async def summarize_text(request: TextRequest):
+    """Принимает текст и возвращает краткую выжимку от LLM"""
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Текст не может быть пустым")
     
-    result = analyzer.analyze(request.text)
+    result = llm_assistant.summarize_text(request.text)
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+        
     return result
 
 @app.get("/")
 async def root():
-    """Тестовый маршрут проверки доступности"""
-    return {"message": "API работает! Отправьте POST запрос на /analyze"}
+    return {"message": "API работает! Отправьте POST запрос на /analyze или /summarize"}
